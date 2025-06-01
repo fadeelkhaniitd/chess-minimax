@@ -16,7 +16,6 @@ Run the main engine:
 ```bash
 python Chess_Engine.py [--takeback] [--evalbar]
 ```
-Additional flags 
 
 Run the 2-player simulator:
 ```bash
