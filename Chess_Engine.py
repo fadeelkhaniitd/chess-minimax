@@ -1,7 +1,6 @@
-import chess, pygame, os, time, argparse
+import chess, pygame, os, argparse
 import chess.pgn
 import datetime as dt
-from time import perf_counter as pc
 from random import choice
 from math import inf
 pygame.init()
@@ -74,7 +73,7 @@ def show_eval_bar():
     val_text = font_30.render(f'{round(val, 1)}', True, (20, 20, 20), (235, 235, 235))
     pygame.draw.rect(chessWindow, (0, 0, 0), pygame.Rect(452, 199, 15, 4))
     val_rect = val_text.get_rect()
-    val_rect.center = (485 + (val_rect.width / 2), 200)
+    val_rect.center = (485 + (val_rect.width // 2), 200)
     chessWindow.blit(val_text, val_rect)
     pygame.draw.rect(chessWindow, (0, 0, 0),
                      pygame.Rect(483, 201 - (val_rect.height / 2), val_rect.width + 4, val_rect.height), 1)
@@ -103,7 +102,7 @@ def choose_player_color():
     chessWindow.blit(black_img, black_rect)
     text = font_30.render('Choose color by clicking', True, (20, 20, 20), (235, 235, 235))
     text_rect = text.get_rect()
-    text_rect.center = (X/2, 3*Y//8)
+    text_rect.center = (X//2, 3*Y//8)
     chessWindow.blit(text, text_rect)
     pygame.display.update()
     selected = False
