@@ -228,12 +228,6 @@ def playermove():
                         return move
 
 def game_over():
-    if starting_fen != standard_fen:
-        print(str(board.outcome().termination).split('.')[1])
-        print(board.outcome().result())
-        print(game_moves)
-        return
-
     global game, i
     node = game
     for move in game_moves:
