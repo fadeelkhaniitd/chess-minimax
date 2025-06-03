@@ -288,7 +288,6 @@ def playermove():
                         return move
 
 def game_over():
-    global game, i
     node = game
     for move in game_moves:
         node = node.add_variation(move)
@@ -301,8 +300,6 @@ def game_over():
         file.write(f"{game}\n")
 
 def computermove(depth = 4):
-    global move_ordering_table
-
     def minimax(board, depth, alpha, beta):
         if depth == 0:
             return evaluation(board), []
