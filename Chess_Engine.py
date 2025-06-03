@@ -1,10 +1,19 @@
-import chess, pygame, os, argparse
-import chess.pgn
+import os
+import time
+import argparse
 import datetime as dt
 from random import choice
 from math import inf
+from time import perf_counter as pc
+
+import chess
+import chess.pgn
+import pygame
+
+# Initialization
 pygame.init()
 
+# =================== Config ===================
 parser = argparse.ArgumentParser(description="Run the Python Chess Engine")
 parser.add_argument('--takeback', action='store_true', help='Enable takeback feature')
 parser.add_argument('--evalbar', action='store_true', help='Show evaluation bar')
@@ -15,24 +24,77 @@ TAKEBACK_ENABLED = args.takeback
 EVALBAR_ENABLED = args.evalbar
 FAST_ENABLED = args.fast
 
+# Evaluation function
 if FAST_ENABLED:
     from evaluation import faster_evaluation as evaluation
 else:
     from evaluation import evaluation
 
+# GUI Dimensions
 X = 550 if EVALBAR_ENABLED else 400
 Y = 500 if TAKEBACK_ENABLED else 400
-color1 = (118,150,86)
-color2 = (238,238,210)
 
+# Colors
+BG_COLOR = (235, 235, 235)
+LIGHT_SQUARE = (238, 238, 210)
+DARK_SQUARE = (118, 150, 86)
+MOVE_BLUE = (130, 191, 255)
+MOVE_RED = (255, 110, 120)
+
+# Load fonts
 font_50 = pygame.font.Font("ChessImages/bahnschrift.ttf", 50)
 font_30 = pygame.font.Font("ChessImages/bahnschrift.ttf", 30)
-takeback = font_50.render("Takeback", True, (50, 50, 50), (235, 235, 235))
-takeback_rect = takeback.get_rect()
-takeback_rect.center = (200, 450)
+
+# Create window
+chessWindow = pygame.display.set_mode((X, Y))
+pygame.display.set_caption('Chess Engine')
+pygame.display.set_icon(pygame.image.load('ChessImages/chess-board.png'))
+
+# Piece images
+PIECE_IMAGES = {
+    "R": pygame.image.load("ChessImages/white_rook.png"),
+    "r": pygame.image.load("ChessImages/black_rook.png"),
+    "N": pygame.image.load("ChessImages/white_knight.png"),
+    "n": pygame.image.load("ChessImages/black_knight.png"),
+    "B": pygame.image.load("ChessImages/white_bishop.png"),
+    "b": pygame.image.load("ChessImages/black_bishop.png"),
+    "Q": pygame.image.load("ChessImages/white_queen.png"),
+    "q": pygame.image.load("ChessImages/black_queen.png"),
+    "K": pygame.image.load("ChessImages/white_king.png"),
+    "k": pygame.image.load("ChessImages/black_king.png"),
+    "P": pygame.image.load("ChessImages/white_pawn.png"),
+    "p": pygame.image.load("ChessImages/black_pawn.png"),
+    "_": None,
+}
+
+# State
+playercolor = 1  # default value (white)
+game_moves = []
+move_ordering_table = []
+is_running = True
+
+# GUI elements for takeback
+takeback = font_50.render("Takeback", True, (50, 50, 50), BG_COLOR)
+takeback_rect = takeback.get_rect(center=(200, 450))
+
+# Game setup
+board = chess.Board()
+starting_fen = chess.STARTING_FEN
+board.set_fen(starting_fen)
+
+game = chess.pgn.Game()
+x = dt.datetime.now()
+game.headers.update({
+    'Event': 'Chess Engine',
+    'Date': x.strftime("%Y.%m.%d")
+})
+i = 1
+while os.path.exists(f"PGNs/game{i}.pgn"):
+    i += 1
+
 
 def updateWindow():
-    chessWindow.fill(color=(235, 235, 235))
+    chessWindow.fill(color=BG_COLOR)
 
     board_list_ = board.fen().split('/')
     board_list_[-1] = board_list_[-1].split()[0]
@@ -56,9 +118,9 @@ def updateWindow():
         for x in range(7, -1, -1):
             image = PIECE_IMAGES.get(row[x])
             if (x + (7 - y)) % 2 == 1:
-                pygame.draw.rect(chessWindow, color1, pygame.Rect((50 * x), (50 * (7 - y)), 50, 50))
+                pygame.draw.rect(chessWindow, DARK_SQUARE, pygame.Rect((50 * x), (50 * (7 - y)), 50, 50))
             else:
-                pygame.draw.rect(chessWindow, color2, pygame.Rect((50 * x), (50 * (7 - y)), 50, 50))
+                pygame.draw.rect(chessWindow, LIGHT_SQUARE, pygame.Rect((50 * x), (50 * (7 - y)), 50, 50))
             if image != None:
                 chessWindow.blit(image, ((50 * x), (50 * (7 - y))))
 
@@ -70,7 +132,7 @@ def updateWindow():
 
 def show_eval_bar():
     val = (evaluation(board) / 100)
-    val_text = font_30.render(f'{round(val, 1)}', True, (20, 20, 20), (235, 235, 235))
+    val_text = font_30.render(f'{round(val, 1)}', True, (20, 20, 20), BG_COLOR)
     pygame.draw.rect(chessWindow, (0, 0, 0), pygame.Rect(452, 199, 15, 4))
     val_rect = val_text.get_rect()
     val_rect.center = (485 + (val_rect.width // 2), 200)
@@ -91,7 +153,7 @@ def show_eval_bar():
     pygame.display.update()
 
 def choose_player_color():
-    chessWindow.fill(color=(235, 235, 235))
+    chessWindow.fill(color=BG_COLOR)
     white_img = PIECE_IMAGES.get('K')
     black_img = PIECE_IMAGES.get('k')
     white_rect = white_img.get_rect()
@@ -100,7 +162,7 @@ def choose_player_color():
     black_rect.center = ((X-150)//2 + 150, 5*Y//8)
     chessWindow.blit(white_img, white_rect)
     chessWindow.blit(black_img, black_rect)
-    text = font_30.render('Choose color by clicking', True, (20, 20, 20), (235, 235, 235))
+    text = font_30.render('Choose color by clicking', True, (20, 20, 20), BG_COLOR)
     text_rect = text.get_rect()
     text_rect.center = (X//2, 3*Y//8)
     chessWindow.blit(text, text_rect)
@@ -166,18 +228,17 @@ def playermove():
                                     displayx = (square % 8) * 50
                                     displayy = (7 - (square // 8)) * 50
                                 width = 4
-                                color1 = (130, 191, 255)
-                                color2 = (255, 110, 120)
+
                                 if board.piece_at(chess.square(move.to_square % 8, move.to_square // 8)) == None:
-                                    pygame.draw.rect(chessWindow, color1, pygame.Rect(displayx, displayy, width, 50))
-                                    pygame.draw.rect(chessWindow, color1, pygame.Rect(displayx + 50 - width, displayy, width, 50))
-                                    pygame.draw.rect(chessWindow, color1, pygame.Rect(displayx, displayy, 50, width))
-                                    pygame.draw.rect(chessWindow, color1, pygame.Rect(displayx, displayy + 50 - width, 50, width))
+                                    pygame.draw.rect(chessWindow, MOVE_BLUE, pygame.Rect(displayx, displayy, width, 50))
+                                    pygame.draw.rect(chessWindow, MOVE_BLUE, pygame.Rect(displayx + 50 - width, displayy, width, 50))
+                                    pygame.draw.rect(chessWindow, MOVE_BLUE, pygame.Rect(displayx, displayy, 50, width))
+                                    pygame.draw.rect(chessWindow, MOVE_BLUE, pygame.Rect(displayx, displayy + 50 - width, 50, width))
                                 else:
-                                    pygame.draw.rect(chessWindow, color2, pygame.Rect(displayx, displayy, width, 50))
-                                    pygame.draw.rect(chessWindow, color2, pygame.Rect(displayx + 50 - width, displayy, width, 50))
-                                    pygame.draw.rect(chessWindow, color2, pygame.Rect(displayx, displayy, 50, width))
-                                    pygame.draw.rect(chessWindow, color2, pygame.Rect(displayx, displayy + 50 - width, 50, width))
+                                    pygame.draw.rect(chessWindow, MOVE_RED, pygame.Rect(displayx, displayy, width, 50))
+                                    pygame.draw.rect(chessWindow, MOVE_RED, pygame.Rect(displayx + 50 - width, displayy, width, 50))
+                                    pygame.draw.rect(chessWindow, MOVE_RED, pygame.Rect(displayx, displayy, 50, width))
+                                    pygame.draw.rect(chessWindow, MOVE_RED, pygame.Rect(displayx, displayy + 50 - width, 50, width))
                                 pygame.display.update()
 
                 elif piece_selected == True:
@@ -201,7 +262,7 @@ def playermove():
                                 dict1 = {1: ['Q', 'R', 'B', 'N'], -1: ['q', 'r', 'b', 'n']}
                                 moved = False
                                 piece_selected = None
-                                chessWindow.fill(color2)
+                                chessWindow.fill(MOVE_RED)
                                 chessWindow.blit(PIECE_IMAGES.get(dict1.get(playercolor)[0]), (100, 175 - 75 * playercolor))
                                 chessWindow.blit(PIECE_IMAGES.get(dict1.get(playercolor)[1]), (150, 175 - 75 * playercolor))
                                 chessWindow.blit(PIECE_IMAGES.get(dict1.get(playercolor)[2]), (200, 175 - 75 * playercolor))
@@ -239,8 +300,7 @@ def game_over():
     with open(f"PGNs/game{i}.pgn", "w") as file:
         file.write(f"{game}\n")
 
-move_ordering_table = []
-def computer_move(depth = 4):
+def computermove(depth = 4):
     global move_ordering_table
 
     def minimax(board, depth, alpha, beta):
@@ -298,70 +358,26 @@ def computer_move(depth = 4):
     game_moves.append(move)
     updateWindow()
 
-chessWindow = pygame.display.set_mode((X, Y))
-pygame.display.set_caption('Chess Engine')
-pygame.display.set_icon(pygame.image.load('ChessImages/chess-board.png'))
-PIECE_IMAGES = {"R": pygame.image.load(r"ChessImages/white_rook.png"),
-                "r": pygame.image.load(r"ChessImages/black_rook.png"),
-                "N": pygame.image.load(r"ChessImages/white_knight.png"),
-                "n": pygame.image.load(r"ChessImages/black_knight.png"),
-                "B": pygame.image.load(r"ChessImages/white_bishop.png"),
-                "b": pygame.image.load(r"ChessImages/black_bishop.png"),
-                "Q": pygame.image.load(r"ChessImages/white_queen.png"),
-                "q": pygame.image.load(r"ChessImages/black_queen.png"),
-                "K": pygame.image.load(r"ChessImages/white_king.png"),
-                "k": pygame.image.load(r"ChessImages/black_king.png"),
-                "P": pygame.image.load(r"ChessImages/white_pawn.png"),
-                "p": pygame.image.load(r"ChessImages/black_pawn.png"),
-                "_": None
-                }
+# Run the game
+if __name__ == '__main__':
+    playercolor = choose_player_color()
+    game.headers['White'] = 'Player' if playercolor == 1 else 'Computer'
+    game.headers['Black'] = 'Player' if playercolor == -1 else 'Computer'
 
-playercolor = choose_player_color()
+    updateWindow()
 
-starting_fen = chess.STARTING_FEN
-board = chess.Board()
-board.set_fen(starting_fen)
-game_moves = []
-
-game = chess.pgn.Game()
-game.headers['Event'] = 'Chess Engine'
-game.headers['White'] = 'Player' if playercolor == 1 else 'Computer'
-game.headers['Black'] = 'Player' if playercolor == -1 else 'Computer'
-x = dt.datetime.now()
-game.headers['Date'] = x.strftime("%Y.%m.%d")
-i = 1
-while os.path.exists(f"PGNs/game{i}.pgn"): i += 1
-
-is_running = True
-updateWindow()
-if playercolor == 1:
     while is_running:
-        playermove()
-        if is_running == False: break
-        if board.outcome() != None:
+        if board.outcome():
             game_over()
             break
 
-        computer_move()
-        if board.outcome() != None:
-            game_over()
-            break
+        if (board.turn and playercolor == 1) or (not board.turn and playercolor == -1):
+            playermove()
+        else:
+            computermove()
 
-elif playercolor == -1:
     while is_running:
-        computer_move()
-        if is_running == False: break
-        if board.outcome() != None:
-            game_over()
-            break
-
-        playermove()
-        if board.outcome() != None:
-            game_over()
-            break
-
-while is_running:
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            is_running = False
-            break
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                is_running = False
+                break
