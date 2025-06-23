@@ -1,9 +1,0 @@
-[Event "Chess Engine"]
-[Site "?"]
-[Date "2025.06.23"]
-[Round "?"]
-[White "Player"]
-[Black "Computer"]
-[Result "*"]
-
-1. e3 e5 2. d4 Nc6 3. dxe5 Nxe5 4. Qd4 Nc6 5. Qe4+ *
