@@ -1,0 +1,9 @@
+[Event "Chess Engine"]
+[Site "?"]
+[Date "2025.06.23"]
+[Round "?"]
+[White "Player"]
+[Black "Computer"]
+[Result "*"]
+
+1. e4 e5 2. Nf3 Nf6 3. Nxe5 Bd6 4. Nf3 Nxe4 5. g3 Nc6 6. Nh4 Bc5 7. Qh5 g6 8. Nxg6 fxg6 9. Qf3 Bxf2+ 10. Ke2 Nd4+ 11. Kd3 Nc5+ 12. Kc4 Nxf3 13. Be2 d5+ 14. Kb5 *
